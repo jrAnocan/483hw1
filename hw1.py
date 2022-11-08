@@ -2,26 +2,20 @@ import cv2
 import numpy as np
 from cmath import log
 
-def divergenceD(q,s,k_means):
+def divergenceD(q,s,k_means,norm):
     res = 0
-    norm_q=0
-    norm_s=0
-    for i in range(k_means):
-        if(q[i]==0):
-            q[i]+=1
-        if(s[i]==0):
-            s[i]+=1
-        norm_q+=q[i]
-        norm_s+=s[i]
 
-    for i in range(k_means): 
-        
-        res += (q[i]/norm_q)*log(((q[i]/norm_q) / (s[i]/norm_s)),10)
-        
+    for i in range(k_means):   
+        q_val = q[i]
+        s_val = s[i]
+        if(q_val>0):
+
+            res += (q_val/norm)*log(((q_val/norm) / (s_val/norm)),10)  
+
     return res
 
-def divergenceJSD(q,s,k_means):
-    res = (1/2) * divergenceD(q,np.divide( np.add(q,s), 2 ),k_means) + (1/2) * divergenceD(s, np.divide( np.add(q,s), 2 ), k_means)
+def divergenceJSD(q,s,k_means, norm):
+    res = (1/2) * divergenceD(q,np.divide( np.add(q,s), 2 ),k_means, norm) + (1/2) * divergenceD(s, np.divide( np.add(q,s), 2 ), k_means, norm)
     return res
 
 def divergence3DD(q,s,k_means,norm):
@@ -29,9 +23,11 @@ def divergence3DD(q,s,k_means,norm):
     for i in range(k_means): 
         for j in range(k_means):
             for k in range(k_means):
-                if(q[i][j][k]>0 and s[i][j][k]>0):
+                q_val = q[i][j][k]
+                s_val = s[i][j][k]
+                if(q_val > 0):
                    
-                    res += ((q[i][j][k])/norm) * log((((q[i][j][k])/norm) / ((s[i][j][k])/norm)),10)
+                    res += ((q_val)/norm) * log((((q_val)/norm) / ((s_val)/norm)),10)
                     
         
     return res
@@ -53,10 +49,7 @@ def histogramPerChannel(source_cache, lines, queryNo, grid_dimension, k_means, t
         query_image = np.split(query_image,grid_dimension)
         for i in range(len(query_image)):
             query_image[i] = np.hsplit(query_image[i],grid_dimension)
-
-        
-
-        
+   
         
         name_of_the_similar_image=""
         divergence = np.zeros(length,dtype="complex_")
@@ -76,15 +69,17 @@ def histogramPerChannel(source_cache, lines, queryNo, grid_dimension, k_means, t
             
                     
                     for a in range(length):
-                        divergence[a] += ( divergenceJSD(query_blue_column, source_cache[a][i][j][0],k_means) + divergenceJSD(query_green_column, source_cache[a][i][j][1],k_means) + divergenceJSD(query_red_column, source_cache[a][i][j][2],k_means) ) / 3
+                        divergence[a] += ( divergenceJSD(query_blue_column, source_cache[a][i][j][0],k_means, (96/grid_dimension)**2) + divergenceJSD(query_green_column, source_cache[a][i][j][1],k_means,(96/grid_dimension)**2) + divergenceJSD(query_red_column, source_cache[a][i][j][2],k_means, (96/grid_dimension)**2 ) ) / 3
                 elif(type==2):
                     query_3D_histogram = np.zeros((k_means,k_means,k_means))
                     for k in range(int(96/grid_dimension)):
                         for l in range(int(96/grid_dimension)):
                             query_3D_histogram[int(query_image[i][j][k][l][0] / (256/k_means))][int(query_image[i][j][k][l][1] / (256/k_means))][int(query_image[i][j][k][l][2] / (256/k_means))] += 1
-                   
+                    
+
                     for a in range(length):
-                        divergence[a] += ( divergence3DJSD(query_3D_histogram, source_cache[a][i][j],k_means,(96/grid_dimension)**2) ) 
+
+                        divergence[a] +=  divergence3DJSD(query_3D_histogram, source_cache[a][i][j],k_means,(96/grid_dimension)**2 ) 
                
         #--------------------------------------------------------- COMPARE THE IMAGE WITH SOURCE_CACHE       
         min_index = np.argmin(divergence)
@@ -150,6 +145,6 @@ if __name__=="__main__":
 
     source_cache = cacheSource(type,lines,grid_dimension,k_means)
     
-    
+    #print(np.linalg.norm(source_cache[0][0][0],ord=1) ) 
     histogramPerChannel(source_cache, lines, queryNo, grid_dimension, k_means, type)
     
