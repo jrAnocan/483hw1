@@ -12,7 +12,7 @@ def divergenceD(q,s,k_means,norm):
 
             res += (q_val/norm)*log(((q_val/norm) / (s_val/norm)),10)  
 
-    return res
+    return res/(k_means*3)
 
 def divergenceJSD(q,s,k_means, norm):
     res = (1/2) * divergenceD(q,np.divide( np.add(q,s), 2 ),k_means, norm) + (1/2) * divergenceD(s, np.divide( np.add(q,s), 2 ), k_means, norm)
@@ -30,7 +30,7 @@ def divergence3DD(q,s,k_means,norm):
                     res += ((q_val)/norm) * log((((q_val)/norm) / ((s_val)/norm)),10)
                     
         
-    return res
+    return res/(k_means)
 
 def divergence3DJSD(q, s,k_means,norm):
   
@@ -69,7 +69,7 @@ def histogramPerChannel(source_cache, lines, queryNo, grid_dimension, k_means, t
             
                     
                     for a in range(length):
-                        divergence[a] += ( divergenceJSD(query_blue_column, source_cache[a][i][j][0],k_means, (96/grid_dimension)**2) + divergenceJSD(query_green_column, source_cache[a][i][j][1],k_means,(96/grid_dimension)**2) + divergenceJSD(query_red_column, source_cache[a][i][j][2],k_means, (96/grid_dimension)**2 ) ) / 3
+                        divergence[a] += ( divergenceJSD(query_blue_column, source_cache[a][i][j][0],k_means, (96/grid_dimension)**2) + divergenceJSD(query_green_column, source_cache[a][i][j][1],k_means,(96/grid_dimension)**2) + divergenceJSD(query_red_column, source_cache[a][i][j][2],k_means, (96/grid_dimension)**2 ) ) / (3*(grid_dimension**2))
                 elif(type==2):
                     query_3D_histogram = np.zeros((k_means,k_means,k_means))
                     for k in range(int(96/grid_dimension)):
@@ -79,7 +79,7 @@ def histogramPerChannel(source_cache, lines, queryNo, grid_dimension, k_means, t
 
                     for a in range(length):
 
-                        divergence[a] +=  divergence3DJSD(query_3D_histogram, source_cache[a][i][j],k_means,(96/grid_dimension)**2 ) 
+                        divergence[a] +=  divergence3DJSD(query_3D_histogram, source_cache[a][i][j],k_means,(96/grid_dimension)**2 ) / (grid_dimension**2)
                
         #--------------------------------------------------------- COMPARE THE IMAGE WITH SOURCE_CACHE       
         min_index = np.argmin(divergence)
@@ -87,7 +87,7 @@ def histogramPerChannel(source_cache, lines, queryNo, grid_dimension, k_means, t
             correct_comparision += 1
         
 
-    print(correct_comparision)      
+    return correct_comparision/200      
                
                     
 
@@ -146,5 +146,6 @@ if __name__=="__main__":
     source_cache = cacheSource(type,lines,grid_dimension,k_means)
     
     #print(np.linalg.norm(source_cache[0][0][0],ord=1) ) 
-    histogramPerChannel(source_cache, lines, queryNo, grid_dimension, k_means, type)
+    res = histogramPerChannel(source_cache, lines, queryNo, grid_dimension, k_means, type)
+    print(res)
     
